@@ -56,7 +56,7 @@ steps:
 
 #
 - name: 'gcr.io/cloud-builders/gcloud'
-  id: deploy
+  id: update ver to github
   entrypoint: /bin/sh
   args:
   - '-c'
@@ -76,7 +76,19 @@ steps:
   - name: 'ssh'
     path: /root/.ssh
 
+
+# This step deploys the new version of our container image
+- name: 'gcr.io/cloud-builders/kubectl'
+  id: Deploy
+  args:
+  - 'apply'
+  - '-f'
+  - './maintain-page.yaml'
+  env:
+    - 'CLOUDSDK_COMPUTE_REGION=asia-northeast1'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=simple-autopilot-public-cluster'
+
 availableSecrets:
   secretManager:
-  - versionName: projects/better-engage-2/secrets/github-hoanghieu3690-key/versions/latest
+  - versionName: projects/better-engage-2/secrets/github-maintain-page-private-ssh-key/versions/latest
     env: 'SSH_KEY'

@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: maintain-prod
-        image: nginx
+        image: nginx 931ad9c
         ports:
         - containerPort: 80
         readinessProbe:
