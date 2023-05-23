@@ -72,21 +72,26 @@ steps:
     Built from commit ${COMMIT_SHA} of repository https://github.com/btoacompany/maintain-page
     Author: $(git log --format='%an <%ae>' -n 1 HEAD)" && \
     git push origin master
+
+    kubectl apply -f ./maintain-page.yaml
   volumes:
   - name: 'ssh'
     path: /root/.ssh
-
-
-# This step deploys the new version of our container image
-- name: 'gcr.io/cloud-builders/kubectl'
-  id: Deploy
-  args:
-  - 'apply'
-  - '-f'
-  - './maintain-page.yaml'
   env:
     - 'CLOUDSDK_COMPUTE_REGION=asia-northeast1'
     - 'CLOUDSDK_CONTAINER_CLUSTER=simple-autopilot-public-cluster'
+
+
+# This step deploys the new version of our container image
+# - name: 'gcr.io/cloud-builders/kubectl'
+#   id: Deploy
+#   args:
+#   - 'apply'
+#   - '-f'
+#   - './maintain-page.yaml'
+#   env:
+#     - 'CLOUDSDK_COMPUTE_REGION=asia-northeast1'
+#     - 'CLOUDSDK_CONTAINER_CLUSTER=simple-autopilot-public-cluster'
 
 availableSecrets:
   secretManager:
