@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: maintain-prod
-        image: asia-northeast1-docker.pkg.dev/better-engage-2/be/maintain-page:52a4864
+        image: asia-northeast1-docker.pkg.dev/better-engage-2/be/maintain-page:47d3b22
         ports:
         - containerPort: 80
         readinessProbe:
