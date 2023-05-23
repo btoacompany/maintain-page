@@ -1,0 +1,82 @@
+steps:
+# cancel previous same, running builds
+# - name: 'gcr.io/cloud-builders/gcloud'
+#   entrypoint: /bin/sh
+#   args:
+#   - '-c'
+#   - |
+#     set -x && \
+#     ./deployment/cancelot.sh --same_trigger_only
+#   env:
+#     - 'CURRENT_BUILD_ID=$BUILD_ID'
+#     - 'PROJECT_ID=$PROJECT_ID'
+#     - 'REGION=$LOCATION'
+
+# build the image
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args:
+  - "-c"
+  - |
+    DOCKER_BUILDKIT=1 docker build -f Dockerfile \
+    -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/be/maintain-page:$SHORT_SHA .
+
+# This step pushes the image to Artifact Registry
+# The PROJECT_ID and SHORT_SHA variables are automatically
+# replaced by Cloud Build.
+- name: 'gcr.io/cloud-builders/docker'
+  id: Push
+  args:
+  - 'push'
+  - 'asia-northeast1-docker.pkg.dev/${PROJECT_ID}/be/maintain-page:${SHORT_SHA}'
+
+# Access the id_github file from Secret Manager, and setup SSH
+- name: 'gcr.io/cloud-builders/git'
+  secretEnv: ['SSH_KEY']
+  entrypoint: 'bash'
+  args:
+  - -c
+  - |
+    echo "$$SSH_KEY" >> /root/.ssh/id_rsa
+    chmod 400 /root/.ssh/id_rsa
+    cp deployment/known_hosts.github /root/.ssh/known_hosts
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# clone
+- name: 'gcr.io/cloud-builders/git'
+  args:
+  - clone
+  - --recurse-submodules
+  - git@github.com:btoacompany/maintain-page
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+#
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: deploy
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - |
+    set -x && \
+    cd maintain-page && \
+    git checkout master && git fetch origin master && \
+    git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)') && \
+    sed "s/GOOGLE_CLOUD_PROJECT/${PROJECT_ID}/g" ./maintain-page.yaml.tpl | \
+    sed "s/COMMIT_SHA/${SHORT_SHA}/g" > ./maintain-page.yaml && \
+    git add ./maintain-page.yaml && \
+    git commit -m "Deploying image asia-northeast1-docker.pkg.dev/${PROJECT_ID}/be/maintain-page:${SHORT_SHA}
+    Built from commit ${COMMIT_SHA} of repository https://github.com/btoacompany/maintain-page
+    Author: $(git log --format='%an <%ae>' -n 1 HEAD)" && \
+    git push origin master
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/better-engage-2/secrets/github-hoanghieu3690-key/versions/latest
+    env: 'SSH_KEY'
